@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """
-Module for FileStorage class handling serialization to/from JSON files.
+This module contains the FileStorage class responsible for serializing instances 
+to a JSON file and deserializing back to instances.
 """
 
 import json
@@ -13,7 +14,7 @@ from models.state import State
 from models.user import User
 
 # Dictionary mapping class names to their corresponding classes
-classes = {
+CLASSES = {
     "Amenity": Amenity,
     "BaseModel": BaseModel,
     "City": City,
@@ -26,7 +27,11 @@ classes = {
 
 class FileStorage:
     """
-    Serializes instances to a JSON file and deserializes back to instances.
+    Handles serialization and deserialization of instances to/from a JSON file.
+
+    Attributes:
+        __file_path (str): Path to the JSON file storing serialized data.
+        __objects (dict): Dictionary storing all serialized instances.
     """
 
     __file_path = "file.json"
@@ -34,108 +39,109 @@ class FileStorage:
 
     def all(self, cls=None):
         """
-        Returns a dictionary of all objects or filtered by class name.
+        Retrieves all instances stored in __objects.
 
         Args:
-            cls (str or class, optional): Class name or class to filter objects.
+            cls (str or class, optional): If provided, filters instances by class name or type.
 
         Returns:
-            dict: Dictionary of objects keyed by their '__class__.__name__.id'.
+            dict: Dictionary of instances keyed by <class name>.id or all instances if cls is None.
         """
-        if not cls:
+        if cls is None:
             return self.__objects
         elif isinstance(cls, str):
-            return {k: v for k, v in self.__objects.items()
-                    if v.__class__.__name__ == cls}
+            return {key: value for key, value in self.__objects.items()
+                    if value.__class__.__name__ == cls}
         else:
-            return {k: v for k, v in self.__objects.items()
-                    if isinstance(v, cls)}
+            return {key: value for key, value in self.__objects.items()
+                    if isinstance(value, cls)}
 
     def new(self, obj):
         """
-        Adds a new object to the storage.
+        Adds a new object instance to __objects.
 
         Args:
-            obj (BaseModel): Object to be added to storage.
+            obj (BaseModel): Instance of a BaseModel subclass to be added.
         """
         if obj is not None:
-            key = f"{obj.__class__.__name__}.{obj.id}"
+            key = obj.__class__.__name__ + "." + obj.id
             self.__objects[key] = obj
 
     def save(self):
         """
-        Serializes __objects to the JSON file at __file_path.
+        Serializes __objects to the JSON file specified by __file_path.
         """
         json_objects = {}
-        for key in self.__objects:
-            json_objects[key] = self.__objects[key].to_dict(save_to_disk=True)
-        with open(self.__file_path, 'w') as f:
-            json.dump(json_objects, f)
+        for key, value in self.__objects.items():
+            json_objects[key] = value.to_dict(save_to_disk=True)
+        with open(self.__file_path, 'w') as file:
+            json.dump(json_objects, file)
 
     def reload(self):
         """
-        Deserializes the JSON file at __file_path to __objects.
+        Deserializes the JSON file specified by __file_path to __objects.
         """
         try:
-            with open(self.__file_path, 'r') as f:
-                json_data = json.load(f)
-            for key in json_data:
-                class_name = json_data[key]["__class__"]
-                if class_name in classes:
-                    self.__objects[key] = classes[class_name](**json_data[key])
+            with open(self.__file_path, 'r') as file:
+                json_data = json.load(file)
+            for key, data in json_data.items():
+                class_name = data["__class__"]
+                if class_name in CLASSES:
+                    self.__objects[key] = CLASSES[class_name](**data)
         except FileNotFoundError:
             pass
 
     def delete(self, obj=None):
         """
-        Deletes an object from __objects if it exists and saves the changes.
+        Deletes the specified object instance from __objects.
 
         Args:
-            obj (BaseModel, optional): Object to be deleted from storage.
+            obj (BaseModel, optional): Instance of a BaseModel subclass to be deleted.
         """
         if obj is not None:
-            key = f"{obj.__class__.__name__}.{obj.id}"
+            key = obj.__class__.__name__ + "." + obj.id
             if key in self.__objects:
                 del self.__objects[key]
                 self.save()
 
     def close(self):
         """
-        Reloads the JSON file to refresh __objects.
+        Alias for reload method to deserialize JSON file back into objects.
         """
         self.reload()
 
-    def get(self, cls, id):
+    def get(self, cls_name, obj_id):
         """
-        Retrieves an object based on class name and ID.
+        Retrieves an object instance from __objects based on class name and object ID.
 
         Args:
-            cls (str): Class name of the object to retrieve.
-            id (str): ID of the object to retrieve.
+            cls_name (str): Name of the class of the object instance.
+            obj_id (str): ID of the object instance.
 
         Returns:
-            object: Retrieved object or None if not found.
+            obj: Object instance if found, None if not found.
         """
-        if isinstance(cls, str) and isinstance(id, str) and cls in classes:
-            key = f"{cls}.{id}"
-            return self.__objects.get(key, None)
+        if isinstance(cls_name, str) and isinstance(obj_id, str) and cls_name in CLASSES:
+            key = cls_name + '.' + obj_id
+            obj = self.__objects.get(key, None)
+            return obj
         else:
             return None
 
     def count(self, cls=None):
         """
-        Counts the number of objects in storage, optionally filtered by class.
+        Counts the number of object instances in __objects.
 
         Args:
-            cls (str or class, optional): Class name or class to filter objects.
+            cls (str or class, optional): If provided, counts instances by class name or type.
 
         Returns:
-            int: Total count of objects in storage.
+            int: Number of object instances.
         """
-        if isinstance(cls, str) and cls in classes:
-            return len(self.all(cls))
+        total = 0
+        if isinstance(cls, str) and cls in CLASSES:
+            total = len(self.all(cls))
         elif cls is None:
-            return len(self.__objects)
-        else:
-            return 0
+            total = len(self.__objects)
+        return total
 
