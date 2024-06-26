@@ -1,23 +1,22 @@
 #!/usr/bin/python3
-"""
-Amenity Module
+""" holds class Amenity"""
+import models
+from models.base_model import BaseModel, Base
+from os import getenv
+import sqlalchemy
+from sqlalchemy import Column, String
+from sqlalchemy.orm import relationship
 
-This module defines the Amenity class, which inherits from BaseModel.
-The Amenity class represents an amenity with a name attribute.
 
-Classes:
-    Amenity: A class representing an amenity with a name attribute.
-"""
+class Amenity(BaseModel, Base):
+    """Representation of Amenity """
+    if getenv('HBNB_TYPE_STORAGE') == 'db':
+        __tablename__ = 'amenities'
+        name = Column(String(128),
+                      nullable=False)
+    else:
+        name = ""
 
-from models.base_model import BaseModel
-
-class Amenity(BaseModel):
-    """
-    Represents an amenity, inheriting from BaseModel.
-
-    Attributes:
-        name (str): The name of the amenity. Defaults to an empty string.
-    """
-
-    name = ""
-
+    def __init__(self, *args, **kwargs):
+        """initializes Amenity"""
+        super().__init__(*args, **kwargs)
