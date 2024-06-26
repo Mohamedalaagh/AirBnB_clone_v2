@@ -1,30 +1,42 @@
 #!/usr/bin/python3
-"""
-User Module
+"""Contains the User class definition."""
 
-This module defines the User class, which inherits from BaseModel.
-The User class represents a user in the system with various attributes.
-
-Classes:
-    User: A class representing a user with email, password, first name, and last name.
-"""
-
-from models.base_model import BaseModel
+import hashlib
+import models
+from models.base_model import BaseModel, Base
+from os import getenv
+from sqlalchemy.orm import relationship
+from sqlalchemy import Column, String
 
 
-class User(BaseModel):
-    """
-    Represents a User in the system, inheriting from BaseModel.
+class User(BaseModel, Base):
+    """Representation of a User."""
+    
+    if getenv('HBNB_TYPE_STORAGE') == 'db':
+        __tablename__ = 'users'
+        email = Column(String(128), nullable=False)
+        _password = Column('password', String(128), nullable=False)
+        first_name = Column(String(128), nullable=True)
+        last_name = Column(String(128), nullable=True)
+        places = relationship("Place", backref="user", cascade="all, delete-orphan")
+        reviews = relationship("Review", backref="user", cascade="all, delete-orphan")
+    else:
+        email = ""
+        _password = ""
+        first_name = ""
+        last_name = ""
 
-    Attributes:
-        email (str): The email address of the user. Defaults to an empty string.
-        password (str): The password for the user account. Defaults to an empty string.
-        first_name (str): The first name of the user. Defaults to an empty string.
-        last_name (str): The last name of the user. Defaults to an empty string.
-    """
+    def __init__(self, *args, **kwargs):
+        """Initializes a new User instance."""
+        super().__init__(*args, **kwargs)
 
-    email = ""
-    password = ""
-    first_name = ""
-    last_name = ""
+    @property
+    def password(self):
+        """Gets the hashed password."""
+        return self._password
+
+    @password.setter
+    def password(self, password_value):
+        """Sets and hashes the password value."""
+        self._password = hashlib.md5(password_value.encode()).hexdigest()
 

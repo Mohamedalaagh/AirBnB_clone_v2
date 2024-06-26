@@ -1,26 +1,37 @@
 #!/usr/bin/python3
-"""
-City Module
+"""Defines the City class"""
 
-This module defines the City class, which inherits from BaseModel.
-The City class represents a city with a state ID and a name.
-
-Classes:
-    City: A class representing a city with state_id and name attributes.
-"""
-
-from models.base_model import BaseModel
+import models
+from models.base_model import BaseModel, Base
+from os import getenv
+from sqlalchemy import Column, String, ForeignKey
+from sqlalchemy.orm import relationship
 
 
-class City(BaseModel):
+class City(BaseModel, Base):
     """
-    Represents a city, inheriting from BaseModel.
+    Represents a city, inherits from BaseModel and Base.
 
     Attributes:
-        state_id (str): The ID of the state where the city is located. Defaults to an empty string.
-        name (str): The name of the city. Defaults to an empty string.
+        __tablename__ (str): Name of the database table for SQLAlchemy.
+        name (Column): City name (max length 128, non-nullable).
+        state_id (Column): State ID associated with the city (max length 60, non-nullable).
+        places (relationship): Relationship to Place instances, with cascading delete.
+
+    Methods:
+        __init__(*args, **kwargs): Initializes a new City instance.
     """
 
-    state_id = ""
-    name = ""
+    if getenv('HBNB_TYPE_STORAGE') == 'db':
+        __tablename__ = 'cities'
+        name = Column(String(128), nullable=False)
+        state_id = Column(String(60), ForeignKey('states.id'), nullable=False)
+        places = relationship("Place", backref="cities", cascade="all, delete-orphan")
+    else:
+        name = ""
+        state_id = ""
+
+    def __init__(self, *args, **kwargs):
+        """Initializes a new City instance."""
+        super().__init__(*args, **kwargs)
 
